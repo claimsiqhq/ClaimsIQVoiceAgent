@@ -1,0 +1,7 @@
+{
+  "name": "Live AI Support Agent for Inspectors",
+  "description": "An interactive AI support agent for property claims inspectors, using Gemini 2.5 Native Audio (Live API) for real-time voice conversations and transcription.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
