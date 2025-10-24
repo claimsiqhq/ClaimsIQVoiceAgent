@@ -1,8 +1,8 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { TranscriptEntry, SessionStatus } from '../types';
 import { TranscriptSpeaker } from '../types';
 import { connectToLiveSession, decode, decodeAudioData } from '../services/geminiService';
+import { search } from '../services/ragService';
 import type { LiveSession, LiveServerMessage } from '@google/genai';
 
 export const useLiveSupport = () => {
@@ -28,6 +28,26 @@ export const useLiveSupport = () => {
   }, [currentUserTranscript, currentAgentTranscript]);
 
   const handleMessage = useCallback(async (message: LiveServerMessage) => {
+    if (message.toolCall) {
+      console.log('Tool call received:', message.toolCall);
+      for (const fc of message.toolCall.functionCalls) {
+        if (fc.name === 'lookupInspectionManual') {
+          setStatus('searching');
+          const context = search(fc.args.query as string);
+          
+          sessionPromise.current?.then((session) => {
+            session.sendToolResponse({
+              functionResponses: [{
+                id: fc.id,
+                name: fc.name,
+                response: { result: context },
+              }]
+            });
+          });
+        }
+      }
+    }
+    
     if (message.serverContent) {
       if (message.serverContent.inputTranscription) {
         setStatus('listening');
@@ -51,7 +71,7 @@ export const useLiveSupport = () => {
         
         source.addEventListener('ended', () => {
           audioSources.current.delete(source);
-          if (audioSources.current.size === 0 && isSessionActive) {
+          if (audioSources.current.size === 0 && status !== 'searching') {
             setStatus('listening');
           }
         });
@@ -85,7 +105,7 @@ export const useLiveSupport = () => {
         setStatus('listening');
       }
     }
-  }, [isSessionActive]);
+  }, [status]);
 
   const stopSession = useCallback(async () => {
     setStatus('closing');
@@ -123,7 +143,7 @@ export const useLiveSupport = () => {
         onclose: () => {
           setStatus('idle');
           if (outputAudioContext.current) {
-            outputAudioContext.current.close();
+            outputAudioContext.current.close().catch(console.error);
             outputAudioContext.current = null;
           }
           for (const source of audioSources.current.values()) {

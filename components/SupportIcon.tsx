@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { SessionStatus } from '../types';
 
@@ -30,6 +29,13 @@ const PhoneOffIcon = () => (
     </svg>
 );
 
+const SearchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+);
+
 
 export const SupportIcon: React.FC<SupportIconProps> = ({ status, onClick }) => {
   const isSessionActive = status !== 'idle' && status !== 'error';
@@ -41,6 +47,8 @@ export const SupportIcon: React.FC<SupportIconProps> = ({ status, onClick }) => 
         return <MicIcon />;
       case 'speaking':
         return <HeadphoneIcon />;
+      case 'searching':
+        return <SearchIcon />;
       case 'idle':
       case 'error':
         return <MicIcon />;
@@ -56,15 +64,17 @@ export const SupportIcon: React.FC<SupportIconProps> = ({ status, onClick }) => 
     : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-400";
 
   const pulseClass = (status === 'listening' || status === 'speaking') ? 'animate-pulse' : '';
+  const spinClass = status === 'searching' ? 'animate-spin' : '';
 
   return (
     <button
       onClick={onClick}
       className={`${baseClasses} ${colorClasses}`}
       aria-label={isSessionActive ? 'End Support Session' : 'Start Support Session'}
+      disabled={status === 'searching' || status === 'connecting' || status === 'closing'}
     >
       <span className={`absolute inline-flex h-full w-full rounded-full bg-opacity-75 ${pulseClass} ${isSessionActive ? 'bg-red-500' : 'bg-indigo-500'}`}></span>
-      <span className="relative z-10 text-3xl">{getIcon()}</span>
+      <span className={`relative z-10 text-3xl ${spinClass}`}>{getIcon()}</span>
     </button>
   );
 };

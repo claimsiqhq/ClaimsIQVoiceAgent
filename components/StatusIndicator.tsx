@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { SessionStatus } from '../types';
 
@@ -17,6 +16,8 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
         return { text: 'Listening', color: 'bg-green-500' };
       case 'speaking':
         return { text: 'Speaking', color: 'bg-blue-500' };
+      case 'searching':
+        return { text: 'Searching Manual...', color: 'bg-purple-500' };
       case 'error':
         return { text: 'Error', color: 'bg-red-500' };
       case 'closing':

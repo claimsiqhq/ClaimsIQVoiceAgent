@@ -1,4 +1,3 @@
-
 export enum TranscriptSpeaker {
   User = 'USER',
   Agent = 'AGENT',
@@ -9,4 +8,4 @@ export interface TranscriptEntry {
   text: string;
 }
 
-export type SessionStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'error' | 'closing';
+export type SessionStatus = 'idle' | 'connecting' | 'listening' | 'speaking' | 'searching' | 'error' | 'closing';

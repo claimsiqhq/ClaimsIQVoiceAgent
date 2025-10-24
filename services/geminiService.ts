@@ -1,12 +1,26 @@
-
-import { GoogleGenAI, Modality, LiveSession } from "@google/genai";
+import { GoogleGenAI, Modality, LiveSession, FunctionDeclaration, Type } from "@google/genai";
 import type { LiveCallbacks } from "@google/genai";
 
-const SYSTEM_INSTRUCTION = `You are a live support agent for property claims inspectors. You are an expert in building systems that use Retrieval-Augmented Generation (RAG) to reference technical documents. Be prepared to explain the steps for implementing RAG, including document processing, vector embeddings, and integrating with a large language model. Be concise, clear, and very responsive.`;
+const SYSTEM_INSTRUCTION = `You are a live support agent for property claims inspectors. You are an expert in building systems that use Retrieval-Augmented Generation (RAG). Your primary goal is to provide concise, clear, and highly responsive assistance. You have access to a tool called 'lookupInspectionManual' that can search a technical property inspection manual. Use this tool whenever a user asks a specific question about inspection procedures, standards, or definitions (e.g., "what is category 3 water?", "how do I check for structural integrity?"). Do not guess; use the tool to find the correct information and base your answer on the retrieved text. When you use the tool, inform the user you are looking it up.`;
 
 let inputAudioContext: AudioContext | null = null;
 let scriptProcessor: ScriptProcessorNode | null = null;
 let mediaStream: MediaStream | null = null;
+
+const lookupInspectionManual: FunctionDeclaration = {
+  name: 'lookupInspectionManual',
+  description: 'Searches the property inspection technical manual for specific information about procedures, definitions, or standards.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      query: {
+        type: Type.STRING,
+        description: 'The specific topic or question to look up in the manual. For example, "mold identification" or "structural integrity checks".',
+      },
+    },
+    required: ['query'],
+  },
+};
 
 export const connectToLiveSession = async (callbacks: LiveCallbacks): Promise<LiveSession> => {
   if (!process.env.API_KEY) {
@@ -24,7 +38,7 @@ export const connectToLiveSession = async (callbacks: LiveCallbacks): Promise<Li
   
   mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-  const customOnOpen = () => {
+  const customOnOpen = (sessionPromise: Promise<LiveSession>) => {
     inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     const source = inputAudioContext.createMediaStreamSource(mediaStream!);
     scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
@@ -61,7 +75,7 @@ export const connectToLiveSession = async (callbacks: LiveCallbacks): Promise<Li
     model: 'gemini-2.5-flash-native-audio-preview-09-2025',
     callbacks: {
       ...callbacks,
-      onopen: customOnOpen,
+      onopen: () => customOnOpen(sessionPromise),
       onclose: customOnClose
     },
     config: {
@@ -69,6 +83,7 @@ export const connectToLiveSession = async (callbacks: LiveCallbacks): Promise<Li
       speechConfig: {
         voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
       },
+      tools: [{ functionDeclarations: [lookupInspectionManual] }],
       systemInstruction: SYSTEM_INSTRUCTION,
       inputAudioTranscription: {},
       outputAudioTranscription: {},
